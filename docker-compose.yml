@@ -1,0 +1,67 @@
+# Evolution API — self-host stack (WhatsApp REST API + PostgreSQL + Redis)
+# Quick start:
+#   cp .env.example .env      # then edit AUTHENTICATION_API_KEY
+#   docker compose up -d
+#   open http://localhost:8080/manager
+#
+# The API waits for Postgres AND Redis to report healthy before starting,
+# which avoids the common "P1001: can't reach database server" restart loop.
+
+name: evolution-api
+
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: evolution_api
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file: .env
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [evolution-net]
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: evolution_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-evolution}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evolution}
+      POSTGRES_DB: ${POSTGRES_DB:-evolution}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-evolution} -d ${POSTGRES_DB:-evolution}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [evolution-net]
+
+  redis:
+    image: redis:8-alpine
+    container_name: evolution_redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [evolution-net]
+
+volumes:
+  evolution_instances:
+  postgres_data:
+  redis_data:
+
+networks:
+  evolution-net:
+    driver: bridge
