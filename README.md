@@ -36,7 +36,7 @@ All three services are wired over Railway's private network with credentials inj
 Prefer to run it yourself instead of on Railway? This repo ships a ready-to-use compose file.
 
 ```bash
-git clone https://github.com/your-org/evolution-api-railway-template.git
+git clone https://github.com/sahilrupani/evolution-api-railway-template.git
 cd evolution-api-railway-template
 cp .env.example .env
 docker compose up -d
