@@ -1,105 +1,42 @@
-# Evolution API Railway Template — Self-Host the WhatsApp REST API (One-Click Deploy)
+# Deploy and Host Evolution API on Railway — Self-Hosted WhatsApp REST API
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/evolution-api-whatsapp?referralCode=zxcgoT)
+Evolution API is an open-source WhatsApp REST API built on Baileys. It gives programmatic control of WhatsApp accounts through a RESTful interface without requiring Meta's Business API approval — send messages, manage groups, stream events, and connect AI agents from a self-hosted backend you fully control.
 
-**Deploy a self-hosted WhatsApp API on Railway in one click** — no Meta Business API approval, no per-message fees. This Railway template provisions Evolution API, PostgreSQL, and Redis, pre-wired over the private network. A production-ready `docker-compose.yml` is included if you'd rather self-host WhatsApp API on your own server.
+![Deploy on Railway](https://railway.com/button.svg)
 
-[Evolution API](https://github.com/evolution-foundation/evolution-api) is an open-source WhatsApp REST API built on [Baileys](https://github.com/WhiskeySockets/Baileys). It gives you programmatic control of WhatsApp accounts through a RESTful interface — send messages, manage groups, stream webhook events, and connect AI agents — from a backend you fully control.
+Click the button above or use this link: [Deploy Evolution API on Railway](https://railway.com/deploy/evolution-api-whatsapp?referralCode=zxcgoT)
 
----
+## 🚀 Quick Start Deployment Guide
 
-## Contents
+### Step 1: Deploy on Railway
+1. Click **Deploy on Railway** above
+2. Wait for all three services — Evolution API, PostgreSQL, Redis — to finish building (~3–5 minutes)
 
-- [What This Railway Template Deploys](#what-this-railway-template-deploys)
-- [Why Self-Host Evolution API Instead of Twilio or Meta Cloud API](#why-self-host-evolution-api-instead-of-twilio-or-meta-cloud-api)
-- [Deploy Evolution API to Railway (One-Click)](#deploy-evolution-api-to-railway-one-click)
-- [Self-Host Evolution API with Docker Compose](#self-host-evolution-api-with-docker-compose)
-- [Sending Your First WhatsApp Message](#sending-your-first-whatsapp-message)
-- [Environment Variables Reference](#environment-variables-reference)
-- [What You Can Build](#what-you-can-build)
-- [Troubleshooting Evolution API](#troubleshooting-evolution-api)
-- [FAQ](#faq)
+### Step 2: Mount a volume
+1. On the Evolution API service, add a Railway Volume mounted at `/evolution/instances`
+2. Without it your WhatsApp session is lost on every redeploy and you must re-scan the QR code
 
----
+### Step 3: Set your variables
+1. Set `SERVER_URL` to your Railway public domain (the full `https://…` URL)
+2. Generate a strong key with `openssl rand -hex 32` and set it as `AUTHENTICATION_API_KEY`
+3. Redeploy so both take effect
 
-## What This Railway Template Deploys
+### Step 4: Create an instance
+1. Open `https://<your-domain>/manager`
+2. Log in with your `AUTHENTICATION_API_KEY`
+3. Create a new instance and give it a name — you will use this name in every API path
 
-| Service | Image | Purpose |
-|---|---|---|
-| Evolution API | `evoapicloud/evolution-api:v2.3.7` | WhatsApp REST API — instances, messaging, webhooks, Manager UI on port 8080 |
-| PostgreSQL | `postgres:16-alpine` | Persistent store for instances, messages, contacts, session state |
-| Redis | `redis:8-alpine` | Cache / session layer, required for multi-instance |
+### Step 5: Connect WhatsApp
+1. The Manager UI shows a QR code
+2. On your phone open WhatsApp → **Linked devices** → **Link a device**
+3. Scan the QR code; the instance state changes to connected
 
-All three services are wired over Railway's private network with credentials injected via reference variables — no manual connection-string wiring required.
-
-**Prerequisites:** a Railway account (Hobby plan or above), a WhatsApp number you can scan a QR code with, and — for the Docker route — Docker Engine with the Compose plugin.
-
----
-
-## Why Self-Host Evolution API Instead of Twilio or Meta Cloud API
-
-| | Evolution API (self-hosted) | Twilio WhatsApp | Meta Cloud API |
-|---|---|---|---|
-| **Pricing model** | Flat infrastructure cost | Per message | Per 24-hour conversation window |
-| **Typical cost** | ~$5–10/month on Railway Hobby, all three services | $0.005–$0.085 per message | Varies by conversation category |
-| **Cost at 100k messages** | Unchanged | Scales linearly | Scales with conversations |
-| **Meta Business approval** | Not required (QR scan via Baileys) | Required | Required |
-| **Data control** | Fully self-hosted | Third-party SaaS | Meta-hosted |
-| **Officially supported** | No — unofficial integration | Yes | Yes |
-
-Self-hosting wins on cost and control; the official APIs win on compliance guarantees. See the [ToS question in the FAQ](#is-this-compliant-with-whatsapps-terms-of-service) before committing to a high-volume commercial use case.
-
----
-
-## Deploy Evolution API to Railway (One-Click)
-
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/evolution-api-whatsapp?referralCode=zxcgoT)
-
-1. Click **Deploy on Railway** above and wait for all three services to build (~3–5 minutes).
-2. **Mount a volume at `/evolution/instances`** on the Evolution API service. Skip this and your WhatsApp session is lost on every redeploy.
-3. Set `SERVER_URL` to your Railway public domain (`https://…`) — QR generation and webhook delivery depend on it.
-4. Set `AUTHENTICATION_API_KEY` to a strong secret: `openssl rand -hex 32`.
-5. Open `https://<your-domain>/manager`, create an instance, and scan the QR code with WhatsApp → **Linked devices**.
-
----
-
-## Self-Host Evolution API with Docker Compose
-
-Prefer your own server? The full stack ships in this repo.
+### Step 6: Send your first message
+1. Call `POST /message/sendText/<instance>` with the `apikey` header
+2. See the API example below for a copy-paste curl command
 
 ```bash
-git clone https://github.com/sahilrupani/evolution-api-railway-template.git
-cd evolution-api-railway-template
-cp .env.example .env
-```
-
-**Edit `.env` before starting** — it ships with a placeholder API key:
-
-```bash
-# generate a strong key and paste it into AUTHENTICATION_API_KEY
-openssl rand -hex 32
-```
-
-Then bring the stack up:
-
-```bash
-docker compose up -d
-```
-
-Open **http://localhost:8080/manager**, create an instance, and scan the QR code.
-
-The compose file declares healthchecks on Postgres and Redis and gates the API behind `condition: service_healthy`, so the API never starts before its dependencies are reachable — this is what prevents the common `P1001: Can't reach database server` restart loop. A named volume `evolution_instances` is mounted at `/evolution/instances`, so sessions survive `docker compose restart`.
-
----
-
-## Sending Your First WhatsApp Message
-
-Once an instance is connected, every request authenticates with the `apikey` header.
-
-**Send a text message** (`instance` is the name you gave it in the Manager UI):
-
-```bash
-curl -X POST "http://localhost:8080/message/sendText/my-instance" \
+curl -X POST "https://<your-domain>/message/sendText/my-instance" \
   -H "apikey: $AUTHENTICATION_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -108,90 +45,96 @@ curl -X POST "http://localhost:8080/message/sendText/my-instance" \
   }'
 ```
 
-The `number` field takes the recipient in international format, digits only — country code, area code, then the number, with no `+` or spaces. `sendText` also accepts optional `delay`, `linkPreview`, `quoted`, `mentioned`, and `mentionsEveryOne` fields.
+## About Hosting Evolution API
 
-On Railway, swap `http://localhost:8080` for your public domain. Full endpoint reference: [docs.evolutionfoundation.com.br](https://docs.evolutionfoundation.com.br/).
+This Railway template deploys three pre-wired services so you don't have to configure them by hand:
 
----
+- **Evolution API** (`evoapicloud/evolution-api:v2.3.7`) — the WhatsApp REST API, Manager UI, and messaging/webhook/event layer, served on port 8080
+- **PostgreSQL 16** — persistent store for instances, messages, contacts, and session state
+- **Redis** — cache/session layer, required if you plan to run more than one instance
 
-## Environment Variables Reference
+On Railway these are wired together over the private network with credentials injected via reference variables, so there's no manual connection-string plumbing. The deployment gives you a fully self-hosted WhatsApp backend with no per-message fees and no Meta Business API onboarding — you scan a QR code via Baileys and you're live.
+
+## Common Use Cases
+
+- **Customer support automation** — connect a WhatsApp number to a bot or agent framework and answer support tickets without a live human on every message.
+- **AI agent integrations** — wire Evolution API into n8n, Chatwoot, Typebot, Dify, Flowise, Evo AI, or OpenAI to build conversational flows on top of WhatsApp.
+- **Transactional notifications** — send order confirmations, appointment reminders, or alerts from your own backend without per-message vendor fees.
+- **Multi-number operations** — run several WhatsApp instances from a single deployment for different teams, brands, or regions.
+- **Event-driven pipelines** — stream WhatsApp events to RabbitMQ, SQS, NATS, Kafka, Pusher, or a WebSocket for downstream processing.
+- **Media-heavy workflows** — attach S3/MinIO storage for handling images, audio, and documents sent through WhatsApp.
+
+## Dependencies for Evolution API Hosting
+
+### Deployment Dependencies
+- [Evolution API (upstream source)](https://github.com/evolution-foundation/evolution-api)
+- [Evolution API documentation](https://docs.evolutionfoundation.com.br/)
+- [Baileys — the WhatsApp library it is built on](https://github.com/WhiskeySockets/Baileys)
+- [A WhatsApp account you can scan a QR code with](https://www.whatsapp.com/)
+
+## ⚙️ Configuration
 
 | Variable | Required | Description |
 |---|---|---|
-| `SERVER_URL` | ✅ | Public URL the API is reached at. Local Docker: `http://localhost:8080`. Production: your HTTPS domain — required for QR and webhooks |
-| `AUTHENTICATION_API_KEY` | ✅ | Master API key for **all** requests. Generate with `openssl rand -hex 32` |
-| `DATABASE_ENABLED` | ✅ | `true` |
-| `DATABASE_PROVIDER` | ✅ | `postgresql` |
-| `DATABASE_CONNECTION_URI` | ✅ | Postgres connection string. ⚠️ Self-host uses `DATABASE_CONNECTION_URI`, **not** `DATABASE_URL` |
-| `DATABASE_CONNECTION_CLIENT_NAME` | | Client name recorded on the connection (default `evolution`) |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | | Credentials for the bundled Postgres container. If you change the password, update `DATABASE_CONNECTION_URI` to match |
-| `CACHE_REDIS_ENABLED` | ✅ | `true` — required for multi-instance |
-| `CACHE_REDIS_URI` | ✅ | Redis connection string, e.g. `redis://redis:6379/6` |
-| `CACHE_REDIS_PREFIX_KEY` | | Key namespace (default `evolution`) |
-| `CACHE_LOCAL_ENABLED` | | `false` when Redis is in use |
-| `LOG_LEVEL` | | e.g. `ERROR` |
-| `LANGUAGE` | | `en`, `pt-BR`, or `es` |
+| `SERVER_URL` | Yes | Your full Railway public domain (e.g. `https://your-app.up.railway.app`) — used to construct webhooks and links |
+| `AUTHENTICATION_API_KEY` | Yes | Strong secret key used to authenticate all API and Manager UI requests. Generate with `openssl rand -hex 32` |
+| `DATABASE_PROVIDER` | Yes | Set to `postgresql` |
+| `DATABASE_CONNECTION_URI` | Yes | Postgres connection string for persistent instance/message/contact state |
+| `CACHE_REDIS_URI` | Yes | Redis connection string |
+| `CACHE_REDIS_ENABLED` | Yes for multi-instance | Set to `true` to enable Redis caching; required when running more than one WhatsApp instance |
 
-Railway injects its own reference variables for the database and cache, so the names differ from this self-host set — map them accordingly when migrating between environments.
+A Railway Volume mounted at `/evolution/instances` on the Evolution API service is required for session persistence across redeploys — it is not an environment variable but is essential configuration.
 
----
+## 🐳 Self-Host with Docker Compose
 
-## What You Can Build
+```bash
+git clone https://github.com/sahilrupani/evolution-api-railway-template.git
+cd evolution-api-railway-template
+cp .env.example .env
+```
 
-- Run **multiple WhatsApp instances** from a single deployment
-- Power WhatsApp integrations for **n8n, Chatwoot, Typebot, Dify, Flowise, and Evo AI**
-- Connect WhatsApp to **OpenAI**-based conversational agents and AI chatbots
-- Stream events to **RabbitMQ, SQS, NATS, Kafka, Pusher, or WebSocket**
-- Store media in **S3 or MinIO** instead of local disk
-- Build WhatsApp notification, support-desk, and customer-messaging backends
+Edit `.env` and set:
+- `SERVER_URL` to the URL you'll access the API on
+- `AUTHENTICATION_API_KEY` — generate one with `openssl rand -hex 32`
 
----
+Then start the stack:
 
-## Troubleshooting Evolution API
+```bash
+docker compose up -d
+```
 
-**`P1001: Can't reach database server` on startup.**
-The API booted before Postgres was accepting connections. The bundled compose file already prevents this with healthchecks plus `depends_on: condition: service_healthy`. On Railway, confirm the database service is running and that `DATABASE_CONNECTION_URI` points at the private-network host.
+Open `http://localhost:8080/manager` to log in and create your first instance.
 
-**QR code has to be re-scanned after every redeploy.**
-No persistent volume at `/evolution/instances`. Mount one on the Railway service; the compose file already does this via the `evolution_instances` volume.
-
-**`401 Unauthorized` on every request.**
-The `apikey` header is missing or doesn't match `AUTHENTICATION_API_KEY`. Note the header is `apikey` — not `Authorization` or `X-API-Key`.
-
-**QR code never renders, or webhooks never arrive.**
-`SERVER_URL` is wrong. It must be the externally reachable URL, HTTPS in production — not `localhost`.
-
-**Database connection string is ignored.**
-Self-hosting reads `DATABASE_CONNECTION_URI`. `DATABASE_URL` is a common mix-up and is not the variable this deployment uses.
-
----
-
-## FAQ
+## ❓ Frequently Asked Questions (FAQ)
 
 ### Do I need Meta Business API approval?
-No. Evolution API connects via QR scan using Baileys, bypassing Meta's Business API onboarding entirely.
+No. Evolution API connects by QR scan through Baileys, which bypasses Meta's Business API onboarding entirely.
 
-### Is this compliant with WhatsApp's Terms of Service?
-Unofficial integrations carry inherent risk, including number bans. Use numbers with established history, avoid bulk unsolicited messaging, rate-limit your traffic, and enable 2FA. For high-volume commercial messaging, Meta's official Cloud API is the compliant route.
+### Is my data private?
+Yes — the deployment is entirely yours. Messages, contacts and session state live in your own PostgreSQL instance on Railway; nothing routes through a third-party messaging vendor.
 
-### How much does it cost to run Evolution API on Railway?
-Roughly **$5–10/month** on Railway's Hobby plan for all three services combined — flat, regardless of message volume, versus per-message billing on Twilio or per-conversation billing on Meta's Cloud API.
+### Can I run more than one WhatsApp number?
+Yes. Create multiple instances in the Manager UI; each connects its own number. Redis must be enabled (`CACHE_REDIS_ENABLED=true`) for multi-instance operation.
 
-### Will my WhatsApp sessions survive a redeploy?
-Only with a volume mounted at `/evolution/instances`. Without it you'll re-scan the QR code after every redeploy.
+### Can I migrate off Railway later?
+Yes. The same stack runs anywhere Docker does — this repo ships the compose file. Move your Postgres data and the `/evolution/instances` volume and the instances come back.
 
-### Can I run multiple WhatsApp numbers from one deployment?
-Yes. Create multiple instances in the Manager UI; each connects its own number. Redis (`CACHE_REDIS_ENABLED=true`) is required for multi-instance operation.
+### What phone number format does the API expect?
+International format, digits only — country code, area code, then the number, with no `+`, spaces or dashes.
 
-### Can I self-host this without Railway?
-Yes — `docker-compose.yml` in this repo runs the identical stack on any Docker host. See [Self-Host Evolution API with Docker Compose](#self-host-evolution-api-with-docker-compose).
+### Why did my WhatsApp session disappear after a redeploy?
+Because no Railway Volume was mounted at `/evolution/instances`. Session/auth state for Baileys lives there; without a persistent volume it's wiped on every redeploy and you have to re-scan the QR code.
 
-### What license is this under?
-See the [upstream repository](https://github.com/evolution-foundation/evolution-api) for licensing terms.
+### How much does this cost to run?
+Roughly $5–10/month on Railway's Hobby plan for all three services combined, flat regardless of message volume. Compare that to Twilio ($0.005–$0.085 per message) or Meta's Cloud API, which bills per 24-hour conversation window.
 
-### Where are the full API docs?
-[docs.evolutionfoundation.com.br](https://docs.evolutionfoundation.com.br/)
+### Is self-hosting Evolution API compliant with WhatsApp's terms of service?
+Unofficial integrations carry inherent risk since they aren't Meta-approved. Use numbers with an established history, avoid bulk unsolicited messaging, rate-limit your sends, and enable 2FA on the WhatsApp account. For high-volume commercial use, Meta's official Cloud API is the fully compliant route.
+
+## 🛠️ Support & Issues
+
+If you run into problems with this template, open an issue at [github.com/sahilrupani/evolution-api-railway-template/issues](https://github.com/sahilrupani/evolution-api-railway-template/issues). Please include a description of the problem, steps to reproduce it, and any relevant logs from the Evolution API service.
 
 ---
 
-*This repository packages [Evolution API](https://github.com/evolution-foundation/evolution-api) for one-click deployment on Railway. It is community-maintained and not affiliated with the Evolution API project, Meta, WhatsApp, or Railway.*
+*This is a community-maintained Railway template for [Evolution API](https://github.com/evolution-foundation/evolution-api). It is not affiliated with, endorsed by, or supported by the Evolution API maintainers, WhatsApp, or Meta.*
