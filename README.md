@@ -2,7 +2,7 @@
 
 Evolution API is an open-source, self-hosted **WhatsApp REST API** built on Baileys. It gives programmatic control of WhatsApp accounts through a RESTful interface without requiring Meta's Business API approval — send messages, manage groups, stream events, and connect AI agents from a backend you fully control. Deploy the full stack (Evolution API + PostgreSQL + Redis) on Railway in one click, or self-host it anywhere Docker runs.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/evolution-api-whatsapp?referralCode=zxcgoT&utm_medium=integration&utm_source=template&utm_campaign=generic)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/evolution-api-whatsapp)
 
 ## What Is Evolution API?
 
