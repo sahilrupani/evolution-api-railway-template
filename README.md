@@ -1,10 +1,16 @@
-# Deploy and Host Evolution API on Railway — Self-Hosted WhatsApp REST API
+# Evolution API — Self-Hosted WhatsApp REST API (One-Click Railway Deploy)
 
-Evolution API is an open-source WhatsApp REST API built on Baileys. It gives programmatic control of WhatsApp accounts through a RESTful interface without requiring Meta's Business API approval — send messages, manage groups, stream events, and connect AI agents from a self-hosted backend you fully control.
+Evolution API is an open-source, self-hosted **WhatsApp REST API** built on Baileys. It gives programmatic control of WhatsApp accounts through a RESTful interface without requiring Meta's Business API approval — send messages, manage groups, stream events, and connect AI agents from a backend you fully control. Deploy the full stack (Evolution API + PostgreSQL + Redis) on Railway in one click, or self-host it anywhere Docker runs.
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/evolution-api-whatsapp?referralCode=zxcgoT&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-## 🚀 Quick Start Deployment Guide
+## What Is Evolution API?
+
+Evolution API is an open-source WhatsApp API that lets you send and receive WhatsApp messages programmatically over a REST interface. It connects to WhatsApp by QR scan through the Baileys library, so you skip Meta's Business API onboarding entirely. Because it is self-hosted, your messages, contacts and session state stay on infrastructure you own — with no per-message fees and no third-party messaging vendor in the path.
+
+## 🚀 How to Install & Set Up Evolution API (Quick Start)
+
+Follow these steps to install and set up Evolution API for WhatsApp on Railway:
 
 ### Step 1: Deploy on Railway
 1. Click **Deploy on Railway** above
@@ -56,11 +62,20 @@ On Railway these are wired together over the private network with credentials in
 ## Common Use Cases
 
 - **Customer support automation** — connect a WhatsApp number to a bot or agent framework and answer support tickets without a live human on every message.
-- **AI agent integrations** — wire Evolution API into n8n, Chatwoot, Typebot, Dify, Flowise, Evo AI, or OpenAI to build conversational flows on top of WhatsApp.
+- **AI agent & automation integrations** — wire Evolution API into n8n, Chatwoot, Typebot, Dify, Flowise, Evo AI, or OpenAI to build conversational WhatsApp flows. The n8n + Evolution API pairing is the most common no-code path for WhatsApp automation.
 - **Transactional notifications** — send order confirmations, appointment reminders, or alerts from your own backend without per-message vendor fees.
 - **Multi-number operations** — run several WhatsApp instances from a single deployment for different teams, brands, or regions.
 - **Event-driven pipelines** — stream WhatsApp events to RabbitMQ, SQS, NATS, Kafka, Pusher, or a WebSocket for downstream processing.
 - **Media-heavy workflows** — attach S3/MinIO storage for handling images, audio, and documents sent through WhatsApp.
+
+## How Evolution API Compares (vs Twilio & Meta Cloud API)
+
+If you are weighing Evolution API against Twilio or Meta's official Cloud API, the trade-off is cost and control versus official approval:
+
+- **Cost** — Evolution API is a flat self-hosting bill (roughly $5–10/month on Railway) regardless of message volume. Twilio and Meta Cloud API bill per message or per conversation window, which scales with usage.
+- **Onboarding** — Evolution API connects by QR scan through Baileys with no Meta Business API approval. Twilio and Meta Cloud API require official onboarding and business verification.
+- **Data ownership** — with Evolution API, messages, contacts and session state live in your own PostgreSQL instance; nothing routes through a third-party vendor.
+- **Compliance** — this is the trade-off: Twilio and Meta Cloud API are officially sanctioned, while unofficial integrations like Evolution API carry inherent risk (see the ban-safety FAQ below). For high-volume regulated use, Meta's Cloud API is the fully compliant route.
 
 ## Dependencies for Evolution API Hosting
 
@@ -83,7 +98,9 @@ On Railway these are wired together over the private network with credentials in
 
 A Railway Volume mounted at `/evolution/instances` on the Evolution API service is required for session persistence across redeploys — it is not an environment variable but is essential configuration.
 
-## 🐳 Self-Host with Docker Compose
+## 🐳 Self-Host Evolution API with Docker Compose
+
+Prefer to run Evolution API on your own Docker host instead of Railway? Clone the repo and bring up the stack:
 
 ```bash
 git clone https://github.com/sahilrupani/evolution-api-railway-template.git
@@ -108,6 +125,9 @@ Open `http://localhost:8080/manager` to log in and create your first instance.
 ### Do I need Meta Business API approval?
 No. Evolution API connects by QR scan through Baileys, which bypasses Meta's Business API onboarding entirely.
 
+### How do I use Evolution API without getting my WhatsApp banned?
+Unofficial integrations carry inherent risk since they aren't Meta-approved. To reduce the chance of a ban: use numbers with an established history, avoid bulk unsolicited messaging, rate-limit your sends, warm up new numbers gradually, and enable 2FA on the WhatsApp account. For high-volume commercial use, Meta's official Cloud API is the fully compliant route.
+
 ### Is my data private?
 Yes — the deployment is entirely yours. Messages, contacts and session state live in your own PostgreSQL instance on Railway; nothing routes through a third-party messaging vendor.
 
@@ -125,9 +145,6 @@ Because no Railway Volume was mounted at `/evolution/instances`. Session/auth st
 
 ### How much does this cost to run?
 Roughly $5–10/month on Railway's Hobby plan for all three services combined, flat regardless of message volume. Compare that to Twilio ($0.005–$0.085 per message) or Meta's Cloud API, which bills per 24-hour conversation window.
-
-### Is self-hosting Evolution API compliant with WhatsApp's terms of service?
-Unofficial integrations carry inherent risk since they aren't Meta-approved. Use numbers with an established history, avoid bulk unsolicited messaging, rate-limit your sends, and enable 2FA on the WhatsApp account. For high-volume commercial use, Meta's official Cloud API is the fully compliant route.
 
 ## 🛠️ Support & Issues
 
