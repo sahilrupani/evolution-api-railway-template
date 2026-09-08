@@ -16,28 +16,19 @@ Follow these steps to install and set up Evolution API for WhatsApp on Railway:
 1. Click **Deploy on Railway** above
 2. Wait for all three services — Evolution API, PostgreSQL, Redis — to finish building (~3–5 minutes)
 
-### Step 2: Mount a volume
-1. On the Evolution API service, add a Railway Volume mounted at `/evolution/instances`
-2. Without it your WhatsApp session is lost on every redeploy and you must re-scan the QR code
+### Step 2: Open the URL Railway generated
+1. Open the Manager UI at `https://<your-domain>/manager`
+2. Log in with your `AUTHENTICATION_API_KEY` — the template sets it automatically; copy it from the Evolution API service's **Variables** tab in Railway
 
-### Step 3: Set your variables
-1. Set `SERVER_URL` to your Railway public domain (the full `https://…` URL)
-2. Generate a strong key with `openssl rand -hex 32` and set it as `AUTHENTICATION_API_KEY`
-3. Redeploy so both take effect
+### Step 3: Connect WhatsApp
+1. In the Manager, create a new instance and give it a name — you will use this name in every API path
+2. Open the instance to reveal its QR code
+3. On your phone open WhatsApp → **Linked devices** → **Link a device**, and scan the QR code
+4. The instance state changes to connected
 
-### Step 4: Create an instance
-1. Open `https://<your-domain>/manager`
-2. Log in with your `AUTHENTICATION_API_KEY`
-3. Create a new instance and give it a name — you will use this name in every API path
-
-### Step 5: Connect WhatsApp
-1. The Manager UI shows a QR code
-2. On your phone open WhatsApp → **Linked devices** → **Link a device**
-3. Scan the QR code; the instance state changes to connected
-
-### Step 6: Send your first message
+### Step 4: Send your first message
 1. Call `POST /message/sendText/<instance>` with the `apikey` header
-2. See the API example below for a copy-paste curl command
+2. Use the copy-paste curl command below
 
 ```bash
 curl -X POST "https://<your-domain>/message/sendText/my-instance" \
@@ -141,7 +132,7 @@ Yes. The same stack runs anywhere Docker does — this repo ships the compose fi
 International format, digits only — country code, area code, then the number, with no `+`, spaces or dashes.
 
 ### Why did my WhatsApp session disappear after a redeploy?
-Because no Railway Volume was mounted at `/evolution/instances`. Session/auth state for Baileys lives there; without a persistent volume it's wiped on every redeploy and you have to re-scan the QR code.
+This template provisions a persistent volume at `/evolution/instances` automatically, where Baileys session/auth state lives. If your session drops across a redeploy, the volume was detached or removed — re-attach a Railway Volume at `/evolution/instances` to keep the session and avoid re-scanning the QR code.
 
 ### How much does this cost to run?
 Roughly $5–10/month on Railway's Hobby plan for all three services combined, flat regardless of message volume. Compare that to Twilio ($0.005–$0.085 per message) or Meta's Cloud API, which bills per 24-hour conversation window.
